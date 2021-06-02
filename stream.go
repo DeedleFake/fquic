@@ -58,13 +58,13 @@ func (s *Stream) SendStream() quic.SendStream {
 	return s.s
 }
 
-// CanReceive returns true if the stream can be read from.
-func (s *Stream) CanReceive() bool {
+// CanRead returns true if the stream can be read from.
+func (s *Stream) CanRead() bool {
 	return s.r != nil
 }
 
-// CanSend returns true if the stream can be written to.
-func (s *Stream) CanSend() bool {
+// CanWrite returns true if the stream can be written to.
+func (s *Stream) CanWrite() bool {
 	return s.s != nil
 }
 
