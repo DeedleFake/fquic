@@ -10,6 +10,11 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
+const (
+	DefaultCloseCode    = 0
+	DefaultCloseMessage = "closed"
+)
+
 // Conn represents an open QUIC connection.
 //
 // Note that Conn does not implement net.Conn, as QUIC connections
@@ -96,19 +101,19 @@ func (c *Conn) acceptStreams() {
 	}
 }
 
-// Close closes the connection with a zero error code and a blank
-// description.
+// Close closes the connection using DefaultCloseCode and
+// DefaultCloseMessage.
 func (c *Conn) Close() error {
-	return c.CloseWithError(0, "")
+	return c.CloseWithError(DefaultCloseCode, DefaultCloseMessage)
 }
 
 // CloseWithError closes the connection with provided error code and
-// description. Error codes are application-defined.
-func (c *Conn) CloseWithError(code uint64, desc string) error {
+// message. Error codes are application-defined.
+func (c *Conn) CloseWithError(code uint64, message string) error {
 	c.closer.Do(func() {
 		close(c.done)
 	})
-	return c.session.CloseWithError(quic.ApplicationErrorCode(code), desc)
+	return c.session.CloseWithError(quic.ApplicationErrorCode(code), message)
 }
 
 // AcceptStream accepts a stream initiated by the peer in a similar
