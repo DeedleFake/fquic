@@ -93,7 +93,7 @@ func (lc *ListenConfig) Listen(address string) (*Listener, error) {
 	if err != nil {
 		return nil, err
 	}
-	return newListener(lis), nil
+	return &Listener{lis: lis}, nil
 }
 
 // Server listens for incoming connections using the provided
@@ -103,7 +103,7 @@ func (lc *ListenConfig) Server(conn net.PacketConn) (*Listener, error) {
 	if err != nil {
 		return nil, err
 	}
-	return newListener(lis), nil
+	return &Listener{lis: lis}, nil
 }
 
 type netListener struct {
@@ -114,7 +114,7 @@ type netListener struct {
 }
 
 func (lis netListener) Accept() (net.Conn, error) {
-	conn, err := lis.AcceptQUIC(context.Background())
+	conn, err := lis.Listener.Accept(context.Background())
 	if err != nil {
 		return nil, err
 	}
