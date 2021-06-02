@@ -35,15 +35,21 @@ func newConn(session quic.Session) *Conn {
 	return &c
 }
 
-// Dial connects to the specified address.
-func Dial(address string) (*Conn, error) {
-	return new(Dialer).Dial(address)
+// Dial connects to the specified address using protocol as the
+// NextProtos specification of the TLS configuration.
+func Dial(protocol, address string) (*Conn, error) {
+	return (&Dialer{
+		Protocol: protocol,
+	}).Dial(address)
 }
 
 // Client connects to the remote address using the provided net.PacketConn. The
-// host parameter is used for SNI.
-func Client(conn net.PacketConn, raddr net.Addr, host string) (*Conn, error) {
-	return new(Dialer).Client(conn, raddr, host)
+// host parameter is used for SNI. It uses protocol as the NextProtos
+// specification of the TLS configuration.
+func Client(protocol string, conn net.PacketConn, raddr net.Addr, host string) (*Conn, error) {
+	return (&Dialer{
+		Protocol: protocol,
+	}).Client(conn, raddr, host)
 }
 
 func (c *Conn) acceptStreams() {

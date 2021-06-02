@@ -20,15 +20,21 @@ type Listener struct {
 }
 
 // Listen creates a Listener that listens for connections on the given
-// local address.
-func Listen(address string) (*Listener, error) {
-	return new(ListenConfig).Listen(address)
+// local address. It uses protocol as the NextProtos specification of
+// the TLS configuration.
+func Listen(protocol, address string) (*Listener, error) {
+	return (&ListenConfig{
+		Protocol: protocol,
+	}).Listen(address)
 }
 
 // Server creates a Listener that listens for connections using the
-// given net.PacketConn.
-func Server(conn net.PacketConn) (*Listener, error) {
-	return new(ListenConfig).Server(conn)
+// given net.PacketConn. It uses protocol as the NextProtos
+// specification of the TLS configuration.
+func Server(protocol string, conn net.PacketConn) (*Listener, error) {
+	return (&ListenConfig{
+		Protocol: protocol,
+	}).Server(conn)
 }
 
 // Listener returns the underlying quic-go Listener.

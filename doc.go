@@ -1,13 +1,7 @@
 // Package fquic provides a friendly wrapper around quic-go.
 //
 // Echo server:
-//    lc := fquic.ListenConfig{
-//      TLSConfig: &tls.Config{
-//        InsecureSkipVerify: true,
-//      },
-//      Protocol: "quic-echo-example",
-//    }
-//    lis, err := lc.Listen(address)
+//    lis, err := fquic.Listen("quic-echo-example", address)
 //    if err != nil {
 //      log.Fatalf("open listener: %v", err)
 //    }
