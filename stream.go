@@ -3,14 +3,34 @@ package fquic
 import (
 	"net"
 	"time"
+
+	"github.com/lucas-clemente/quic-go"
 )
 
 type Stream struct {
 	conn *Conn
+	s    quic.SendStream
+	r    quic.ReceiveStream
+}
+
+func newStream(conn *Conn, s quic.SendStream, r quic.ReceiveStream) *Stream {
+	return &Stream{
+		conn: conn,
+		s:    s,
+		r:    r,
+	}
 }
 
 func (s *Stream) Conn() *Conn {
 	return s.conn
+}
+
+func (s *Stream) CanSend() bool {
+	return s.s != nil
+}
+
+func (s *Stream) CanReceive() bool {
+	return s.r != nil
 }
 
 func (s *Stream) Read(buf []byte) (int, error) {

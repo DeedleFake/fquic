@@ -1,6 +1,9 @@
 package fquic
 
-import "net"
+import (
+	"context"
+	"net"
+)
 
 type Listener struct {
 	conn net.PacketConn
@@ -24,7 +27,7 @@ func (lis *Listener) Accept() (net.Conn, error) {
 		return nil, err
 	}
 
-	return conn.AcceptStream()
+	return conn.AcceptStream(context.Background())
 }
 
 func (lis *Listener) AcceptQUIC() (*Conn, error) {
