@@ -148,9 +148,9 @@ type Dialer struct {
 	// connection. If it is a nil, a sane default configuration is used.
 	TLSConfig *tls.Config
 
-	// QuicConfig is the quic-go configuration to use when dialing a new
+	// QUICConfig is the quic-go configuration to use when dialing a new
 	// connection. If it is nil, a sane default configuration is used.
-	QuicConfig *quic.Config
+	QUICConfig *quic.Config
 
 	// Protocol, if non-empty, is used to build the NextProtos
 	// specification of TLSConfig. One or the other must be specified.
@@ -182,7 +182,7 @@ func (d *Dialer) Dial(address string) (*Conn, error) {
 }
 
 func (d *Dialer) DialContext(ctx context.Context, address string) (*Conn, error) {
-	session, err := quic.DialAddrContext(ctx, address, d.tlsConfig(), d.QuicConfig)
+	session, err := quic.DialAddrContext(ctx, address, d.tlsConfig(), d.QUICConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -195,7 +195,7 @@ func (d *Dialer) Client(conn net.PacketConn, raddr net.Addr, host string) (*Conn
 }
 
 func (d *Dialer) ClientContext(ctx context.Context, conn net.PacketConn, raddr net.Addr, host string) (*Conn, error) {
-	session, err := quic.DialContext(ctx, conn, raddr, host, d.tlsConfig(), d.QuicConfig)
+	session, err := quic.DialContext(ctx, conn, raddr, host, d.tlsConfig(), d.QUICConfig)
 	if err != nil {
 		return nil, err
 	}
