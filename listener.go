@@ -2,7 +2,13 @@ package fquic
 
 import (
 	"context"
+	"crypto/ed25519"
+	"crypto/rand"
 	"crypto/tls"
+	"crypto/x509"
+	"encoding/pem"
+	"fmt"
+	"math/big"
 	"net"
 
 	"github.com/lucas-clemente/quic-go"
@@ -77,6 +83,11 @@ type ListenConfig struct {
 	TLSConfig  *tls.Config
 	QUICConfig *quic.Config
 	Protocol   string
+
+	// If TLSConfig contains no certificates, GetCertificate is used to
+	// get one as the Listener must have a certificate. If
+	// GetCertificate is nil, GenerateCert is used.
+	GetCertificate func() (tls.Certificate, error)
 }
 
 func (lc *ListenConfig) dialer() *Dialer {
@@ -87,22 +98,54 @@ func (lc *ListenConfig) dialer() *Dialer {
 	}
 }
 
+func (lc *ListenConfig) tlsConfig() (*tls.Config, error) {
+	conf := lc.dialer().tlsConfig()
+
+	if len(conf.Certificates) == 0 {
+		get := lc.GetCertificate
+		if get == nil {
+			get = GenerateCert
+		}
+
+		cert, err := get()
+		if err != nil {
+			return nil, fmt.Errorf("get certificate: %w", err)
+		}
+
+		conf.Certificates = []tls.Certificate{cert}
+	}
+
+	return conf, nil
+}
+
 // Listen listens for incoming connections on the specified address.
 func (lc *ListenConfig) Listen(address string) (*Listener, error) {
-	lis, err := quic.ListenAddr(address, lc.dialer().tlsConfig(), lc.QUICConfig)
+	tlsConfig, err := lc.tlsConfig()
 	if err != nil {
 		return nil, err
 	}
+
+	lis, err := quic.ListenAddr(address, tlsConfig, lc.QUICConfig)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Listener{lis: lis}, nil
 }
 
 // Server listens for incoming connections using the provided
 // net.PacketConn.
 func (lc *ListenConfig) Server(conn net.PacketConn) (*Listener, error) {
-	lis, err := quic.Listen(conn, lc.dialer().tlsConfig(), lc.QUICConfig)
+	tlsConfig, err := lc.tlsConfig()
 	if err != nil {
 		return nil, err
 	}
+
+	lis, err := quic.Listen(conn, tlsConfig, lc.QUICConfig)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Listener{lis: lis}, nil
 }
 
@@ -123,4 +166,42 @@ func (lis netListener) Accept() (net.Conn, error) {
 		return conn.NewStream(lis.unidirectional)
 	}
 	return conn.AcceptStream(context.Background())
+}
+
+// GenerateCert generates a new, self-signed certificate.
+func GenerateCert() (tls.Certificate, error) {
+	pubkey, privkey, err := ed25519.GenerateKey(rand.Reader)
+	if err != nil {
+		return tls.Certificate{}, err
+	}
+
+	template := x509.Certificate{
+		SerialNumber: big.NewInt(1),
+	}
+	xcert, err := x509.CreateCertificate(
+		rand.Reader,
+		&template,
+		&template,
+		pubkey,
+		privkey,
+	)
+	if err != nil {
+		return tls.Certificate{}, err
+	}
+
+	xkey, err := x509.MarshalPKCS8PrivateKey(privkey)
+	if err != nil {
+		return tls.Certificate{}, err
+	}
+
+	pkey := pem.EncodeToMemory(&pem.Block{
+		Type:  "PRIVATE KEY",
+		Bytes: xkey,
+	})
+	pcert := pem.EncodeToMemory(&pem.Block{
+		Type:  "CERTIFICATE",
+		Bytes: xcert,
+	})
+
+	return tls.X509KeyPair(pcert, pkey)
 }
