@@ -48,7 +48,7 @@
 //    }
 //    defer c.Close()
 //
-//    s, err := c.NewStream(true)
+//    s, err := c.NewStream(false)
 //    if err != nil {
 //      log.Fatalf("open stream: %v", err)
 //    }
