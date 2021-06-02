@@ -10,6 +10,10 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
+// Conn represents an open QUIC connection.
+//
+// Note that Conn does not implement net.Conn, as QUIC connections
+// require streams to be opened for actual data transfer.
 type Conn struct {
 	session quic.Session
 
@@ -31,10 +35,13 @@ func newConn(session quic.Session) *Conn {
 	return &c
 }
 
+// Dial connects to the specified address.
 func Dial(address string) (*Conn, error) {
 	return new(Dialer).Dial(address)
 }
 
+// Client connects to the remote address using the provided net.PacketConn. The
+// host parameter is used for SNI.
 func Client(conn net.PacketConn, raddr net.Addr, host string) (*Conn, error) {
 	return new(Dialer).Client(conn, raddr, host)
 }
@@ -89,6 +96,8 @@ func (c *Conn) Close() error {
 	return c.CloseWithError(0, "")
 }
 
+// CloseWithError closes the connection with provided error code and
+// description. Error codes are application-defined.
 func (c *Conn) CloseWithError(code uint64, desc string) error {
 	c.closer.Do(func() {
 		close(c.done)
@@ -96,6 +105,9 @@ func (c *Conn) CloseWithError(code uint64, desc string) error {
 	return c.session.CloseWithError(quic.ApplicationErrorCode(code), desc)
 }
 
+// AcceptStream accepts a stream initiated by the peer in a similar
+// manner to a Listener accepting a connection. Note that the returned
+// stream can be either bidirectional or read-only.
 func (c *Conn) AcceptStream(ctx context.Context) (*Stream, error) {
 	// TODO: Make sure that this returns the correct errors in different
 	// types of situations.
@@ -115,6 +127,8 @@ func (c *Conn) AcceptStream(ctx context.Context) (*Stream, error) {
 	}
 }
 
+// NewStream opens a new stream that can be written to. If
+// unidirectional if false, the peer may also send data.
 func (c *Conn) NewStream(unidirectional bool) (*Stream, error) {
 	if unidirectional {
 		s, err := c.session.OpenUniStream()
@@ -131,18 +145,26 @@ func (c *Conn) NewStream(unidirectional bool) (*Stream, error) {
 	return newStream(c, s, s), nil
 }
 
+// LocalAddr returns the address of the local end of the connection.
 func (c *Conn) LocalAddr() net.Addr {
 	return c.session.LocalAddr()
 }
 
+// RemoteAddr returns the address of the remote end of the connection.
 func (c *Conn) RemoteAddr() net.Addr {
 	return c.session.RemoteAddr()
 }
 
+// Session returns the underlying quic-go Session. Be careful when
+// using this.
 func (c *Conn) Session() quic.Session {
 	return c.session
 }
 
+// A Dialer contains options for connecting to an address. Use of methods on a zero-value Dialer is equivalent to calling the similarly-named top-level functions in this package.
+//
+// It is safe to call methods on Dialer concurrently, but they should
+// not be called concurrently to modifying fields.
 type Dialer struct {
 	// TLSConfig is the TLS configuration to use when dialing a new
 	// connection. If it is a nil, a sane default configuration is used.
@@ -177,10 +199,12 @@ func (d *Dialer) tlsConfig() *tls.Config {
 	return conf
 }
 
+// Dial connects to the specified address.
 func (d *Dialer) Dial(address string) (*Conn, error) {
 	return d.DialContext(context.Background(), address)
 }
 
+// DialContext connects to the specified address using the provided context.
 func (d *Dialer) DialContext(ctx context.Context, address string) (*Conn, error) {
 	session, err := quic.DialAddrContext(ctx, address, d.tlsConfig(), d.QUICConfig)
 	if err != nil {
@@ -190,10 +214,14 @@ func (d *Dialer) DialContext(ctx context.Context, address string) (*Conn, error)
 	return newConn(session), nil
 }
 
+// Client connects to the remote address using the provided net.PacketConn. The
+// host parameter is used for SNI.
 func (d *Dialer) Client(conn net.PacketConn, raddr net.Addr, host string) (*Conn, error) {
 	return d.ClientContext(context.Background(), conn, raddr, host)
 }
 
+// ClientContext connects to the remote address using the provided
+// net.PacketConn and context. The host parameter is used for SNI.
 func (d *Dialer) ClientContext(ctx context.Context, conn net.PacketConn, raddr net.Addr, host string) (*Conn, error) {
 	session, err := quic.DialContext(ctx, conn, raddr, host, d.tlsConfig(), d.QUICConfig)
 	if err != nil {
