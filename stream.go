@@ -1,4 +1,4 @@
-package quic
+package fquic
 
 import (
 	"net"

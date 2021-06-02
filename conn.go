@@ -1,14 +1,15 @@
-package quic
+package fquic
 
 import (
 	"context"
 	"crypto/tls"
 	"net"
+
+	"github.com/lucas-clemente/quic-go"
 )
 
 type Conn struct {
-	conn  net.PacketConn
-	raddr net.Addr
+	s quic.Session
 }
 
 func Dial(network, address string) (*Conn, error) {
