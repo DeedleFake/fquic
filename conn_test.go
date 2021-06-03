@@ -4,12 +4,14 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
+	"errors"
 	"io"
 	"net"
 	"sync"
 	"testing"
 
 	"github.com/DeedleFake/fquic"
+	"github.com/lucas-clemente/quic-go"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -60,6 +62,17 @@ func TestSimple(t *testing.T) {
 		n, err = s.Write(bytes.ToUpper(buf[:n]))
 		assert.NoError(t, err, "write")
 		assert.Equal(t, len(testData), n, "amount written")
+
+		n, err = s.Read(make([]byte, 1))
+		if err != nil {
+			var apperr *quic.ApplicationError
+			if errors.As(err, &apperr) {
+				if apperr.ErrorCode == quic.ApplicationErrorCode(quic.NoError) {
+					return
+				}
+			}
+			assert.NoError(t, err, "wait for close")
+		}
 	}()
 
 	go func() {
