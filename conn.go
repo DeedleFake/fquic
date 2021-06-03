@@ -96,8 +96,8 @@ func (c *Conn) acceptStreams() {
 	}
 }
 
-// Close closes the connection using DefaultCloseCode and
-// DefaultCloseMessage.
+// Close closes the connection, indicating to the remote end that
+// there were no errors.
 func (c *Conn) Close() error {
 	return c.CloseWithError(uint64(quic.NoError), quic.NoError.Message())
 }
