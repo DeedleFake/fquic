@@ -172,7 +172,33 @@ func (c *Conn) Session() quic.Session {
 	return c.session
 }
 
-// A Dialer contains options for connecting to an address. Use of methods on a zero-value Dialer is equivalent to calling the similarly-named top-level functions in this package.
+// ReadDatagram reads a datagram packet from the connection, if
+// datagram support is enabled by both the local machine and the peer.
+//
+// To enable datagram support, set EnableDatagrams to true in the
+// quic.Config via either Dialer or ListenConfig.
+func (c *Conn) ReadDatagram(buf []byte) (int, error) {
+	return c.session.Read(buf)
+}
+
+// WriteDatagram writes a datagram packet to the connection, if
+// datagram support is enabled by both the local machine and the peer.
+//
+// To enable datagram support, set EnableDatagrams to true in the
+// quic.Config via either Dialer or ListenConfig.
+func (c *Conn) WriteDatagram(data []byte) (int, error) {
+	return c.session.Write(data)
+}
+
+// SupportsDatagrams returns true if both ends of the connection have
+// datagram support.
+func (c *Conn) SupportsDatagrams() bool {
+	return c.session.ConnectionState().SupportsDatagrams
+}
+
+// A Dialer contains options for connecting to an address. Use of
+// methods on a zero-value Dialer is equivalent to calling the
+// similarly-named top-level functions in this package.
 //
 // It is safe to call methods on Dialer concurrently, but they should
 // not be called concurrently to modifying fields.
