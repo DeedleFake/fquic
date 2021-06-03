@@ -10,11 +10,6 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-const (
-	DefaultCloseCode    = 0
-	DefaultCloseMessage = "closed"
-)
-
 // Conn represents an open QUIC connection.
 //
 // Note that Conn does not implement net.Conn, as QUIC connections
@@ -104,7 +99,7 @@ func (c *Conn) acceptStreams() {
 // Close closes the connection using DefaultCloseCode and
 // DefaultCloseMessage.
 func (c *Conn) Close() error {
-	return c.CloseWithError(DefaultCloseCode, DefaultCloseMessage)
+	return c.CloseWithError(uint64(quic.NoError), quic.NoError.Message())
 }
 
 // CloseWithError closes the connection with provided error code and
@@ -177,8 +172,8 @@ func (c *Conn) Session() quic.Session {
 //
 // To enable datagram support, set EnableDatagrams to true in the
 // quic.Config via either Dialer or ListenConfig.
-func (c *Conn) ReadDatagram(buf []byte) (int, error) {
-	return c.session.Read(buf)
+func (c *Conn) ReadDatagram() ([]byte, error) {
+	return c.session.ReceiveMessage()
 }
 
 // WriteDatagram writes a datagram packet to the connection, if
@@ -186,8 +181,8 @@ func (c *Conn) ReadDatagram(buf []byte) (int, error) {
 //
 // To enable datagram support, set EnableDatagrams to true in the
 // quic.Config via either Dialer or ListenConfig.
-func (c *Conn) WriteDatagram(data []byte) (int, error) {
-	return c.session.Write(data)
+func (c *Conn) WriteDatagram(data []byte) error {
+	return c.session.SendMessage(data)
 }
 
 // SupportsDatagrams returns true if both ends of the connection have
